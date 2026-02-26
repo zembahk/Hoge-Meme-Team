@@ -17,7 +17,9 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
-  Scaling
+  Scaling,
+  Key,
+  AlertTriangle
 } from 'lucide-react';
 import { IPFSImage, AppState } from './types';
 import { fetchIPFSImages, downloadImage, getFileSize } from './services/ipfsService';
@@ -38,6 +40,7 @@ const App: React.FC = () => {
   // Preview State
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(true);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -162,8 +165,29 @@ const App: React.FC = () => {
     setImages(prev => prev.map(img => img.id === id ? { ...img, analyzing: true } : img));
     const target = images.find(img => img.id === id);
     if (target) {
-      const tags = await analyzeImage(target.url);
-      setImages(prev => prev.map(img => img.id === id ? { ...img, aiTags: tags, analyzing: false } : img));
+      try {
+        const tags = await analyzeImage(target.url);
+        setImages(prev => prev.map(img => img.id === id ? { ...img, aiTags: tags, analyzing: false } : img));
+      } catch (err: any) {
+        setImages(prev => prev.map(img => img.id === id ? { ...img, analyzing: false } : img));
+        if (err.message === "AUTH_ERROR") {
+          setShowApiKeyModal(true);
+        } else {
+          console.error("Analysis failed:", err);
+        }
+      }
+    }
+  };
+
+  const handleOpenKeySelection = async () => {
+    if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+      await window.aistudio.openSelectKey();
+      // After opening the dialog, we assume the user might have updated the key
+      // The platform handles the injection, so we just close our modal
+      setShowApiKeyModal(false);
+    } else {
+      // Fallback if not in AI Studio environment (unlikely here)
+      alert("Please set your GEMINI_API_KEY in the environment variables.");
     }
   };
 
@@ -492,6 +516,61 @@ const App: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* API Key Modal */}
+      {showApiKeyModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onClick={() => setShowApiKeyModal(false)} />
+          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="flex flex-col items-center text-center">
+              <div className="p-4 bg-amber-500/10 rounded-2xl mb-6">
+                <Key className="text-amber-500" size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Gemini API Key Required</h3>
+              <p className="text-slate-400 text-sm mb-8">
+                To use AI analysis features, you need a valid Gemini API key. The current key is missing or invalid.
+              </p>
+              
+              <div className="w-full space-y-3">
+                <button 
+                  onClick={handleOpenKeySelection}
+                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+                >
+                  <Key size={18} />
+                  Select API Key
+                </button>
+                
+                <a 
+                  href="https://ai.google.dev/gemini-api/docs/billing" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-700"
+                >
+                  <ExternalLink size={18} />
+                  Get API Key
+                </a>
+                
+                <button 
+                  onClick={() => setShowApiKeyModal(false)}
+                  className="w-full text-slate-500 hover:text-slate-300 text-xs font-bold uppercase tracking-widest pt-2"
+                >
+                  Cancel
+                </button>
+              </div>
+              
+              <div className="mt-8 p-4 bg-slate-950/50 rounded-xl border border-slate-800 w-full">
+                <div className="flex items-start gap-3 text-left">
+                  <AlertTriangle className="text-amber-500 shrink-0" size={16} />
+                  <p className="text-[10px] text-slate-500 leading-relaxed">
+                    Note: You must select an API key from a paid Google Cloud project. 
+                    Follow the link above to set up billing if you haven't already.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

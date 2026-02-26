@@ -22,3 +22,12 @@ export interface GalleryStats {
   total: number;
   size?: string;
 }
+
+declare global {
+  interface Window {
+    aistudio: {
+      hasSelectedApiKey: () => Promise<boolean>;
+      openSelectKey: () => Promise<void>;
+    };
+  }
+}

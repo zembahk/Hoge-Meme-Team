@@ -1,10 +1,12 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-
 export async function analyzeImage(imageUrl: string): Promise<string[]> {
   try {
+    // Initialize AI inside the function to ensure we use the latest API key from process.env
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+    const ai = new GoogleGenAI({ apiKey });
+
     // Fetch image data to base64
     const response = await fetch(imageUrl);
     const blob = await response.blob();
@@ -43,8 +45,19 @@ export async function analyzeImage(imageUrl: string): Promise<string[]> {
       return JSON.parse(result.text);
     }
     return [];
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI Analysis Error:", error);
+    
+    // Check for authentication errors
+    const errorMessage = error?.message || String(error);
+    if (errorMessage.includes("API_KEY_INVALID") || 
+        errorMessage.includes("invalid API key") || 
+        errorMessage.includes("401") || 
+        errorMessage.includes("403") ||
+        errorMessage.includes("Requested entity was not found")) {
+      throw new Error("AUTH_ERROR");
+    }
+    
     return ["Analysis Failed"];
   }
 }
