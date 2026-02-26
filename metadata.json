@@ -1,0 +1,5 @@
+{
+  "name": "IPFS Image Explorer & Downloader",
+  "description": "A high-performance IPFS gallery browser that allows you to discover, analyze with AI, and download images from decentralized storage. Features bulk downloading and Gemini-powered image tagging.",
+  "requestFramePermissions": []
+}
