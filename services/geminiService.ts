@@ -3,8 +3,14 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 export async function analyzeImage(imageUrl: string): Promise<string[]> {
   try {
-    // Initialize AI inside the function to ensure we use the latest API key from process.env
-    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+    // Initialize AI inside the function to ensure we use the latest API key
+    // Priority: localStorage (user provided) > process.env (system provided)
+    const apiKey = localStorage.getItem('USER_GEMINI_API_KEY') || process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+    
+    if (!apiKey) {
+      throw new Error("AUTH_ERROR");
+    }
+
     const ai = new GoogleGenAI({ apiKey });
 
     // Fetch image data to base64
@@ -46,12 +52,16 @@ export async function analyzeImage(imageUrl: string): Promise<string[]> {
     }
     return [];
   } catch (error: any) {
+    // If it's already our custom AUTH_ERROR, rethrow it
+    if (error.message === "AUTH_ERROR") throw error;
+
     console.error("AI Analysis Error:", error);
     
     // Check for authentication errors
     const errorMessage = error?.message || String(error);
     if (errorMessage.includes("API_KEY_INVALID") || 
         errorMessage.includes("invalid API key") || 
+        errorMessage.includes("API key must be set") ||
         errorMessage.includes("401") || 
         errorMessage.includes("403") ||
         errorMessage.includes("Requested entity was not found")) {

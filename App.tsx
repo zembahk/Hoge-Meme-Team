@@ -41,6 +41,7 @@ const App: React.FC = () => {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(true);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [manualApiKey, setManualApiKey] = useState(localStorage.getItem('USER_GEMINI_API_KEY') || '');
   
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -176,6 +177,14 @@ const App: React.FC = () => {
           console.error("Analysis failed:", err);
         }
       }
+    }
+  };
+
+  const handleSaveManualKey = () => {
+    if (manualApiKey.trim()) {
+      localStorage.setItem('USER_GEMINI_API_KEY', manualApiKey.trim());
+      setShowApiKeyModal(false);
+      // Optional: trigger a success toast or just let the next analysis attempt work
     }
   };
 
@@ -531,13 +540,40 @@ const App: React.FC = () => {
                 To use AI analysis features, you need a valid Gemini API key. The current key is missing or invalid.
               </p>
               
-              <div className="w-full space-y-3">
+              <div className="w-full space-y-4">
+                {/* Manual Input Section */}
+                <div className="space-y-2 text-left">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Manual API Key</label>
+                  <div className="relative">
+                    <input 
+                      type="password"
+                      placeholder="Enter your API key..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-white placeholder:text-slate-700"
+                      value={manualApiKey}
+                      onChange={(e) => setManualApiKey(e.target.value)}
+                    />
+                  </div>
+                  <button 
+                    onClick={handleSaveManualKey}
+                    disabled={!manualApiKey.trim()}
+                    className="w-full bg-white hover:bg-blue-50 text-slate-950 font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-30 disabled:hover:bg-white"
+                  >
+                    Save & Use Key
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-4 py-2">
+                  <div className="h-[1px] flex-1 bg-slate-800" />
+                  <span className="text-[10px] font-bold text-slate-600 uppercase">Or</span>
+                  <div className="h-[1px] flex-1 bg-slate-800" />
+                </div>
+
                 <button 
                   onClick={handleOpenKeySelection}
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+                  className="w-full bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 font-bold py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2 border border-blue-500/20"
                 >
                   <Key size={18} />
-                  Select API Key
+                  Select via AI Studio
                 </button>
                 
                 <a 
